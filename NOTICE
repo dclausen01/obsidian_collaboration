@@ -1,0 +1,20 @@
+Obsidian Collaboration
+======================
+
+This project builds upon the following MIT-licensed open-source work:
+
+- Relay — Multiplayer Mode for Obsidian
+  Copyright (c) 2024 No Instructions, LLC
+  https://github.com/No-Instructions/Relay
+  The Obsidian plugin in `plugin/` is a fork/derivative of Relay.
+
+- y-sweet — a standalone Yjs CRDT server
+  Copyright (c) Jamsocket
+  https://github.com/jamsocket/y-sweet
+  Used as the self-hosted real-time collaboration server.
+
+- Yjs and the y-crdt community
+  https://github.com/yjs/yjs
+
+Their respective MIT license terms apply to the portions of this project
+derived from them.

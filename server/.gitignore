@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.ysweet-data/
+*.log
