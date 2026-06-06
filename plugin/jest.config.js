@@ -18,6 +18,11 @@ module.exports = {
 	testPathIgnorePatterns: ["/__tests__/mocks/", "/__tests__/merge-hsm/testing/", "archive/", ".claude"],
     globals: {
         "BUILD_TYPE": "production",
+        "API_URL": "https://api.example.test",
+        "AUTH_URL": "https://auth.example.test",
+        "LOCAL_AUTH": false,
+        "LOCAL_AUTH_EMAIL": "local@localhost",
+        "LOCAL_AUTH_NAME": "Local User",
     },
 	transformIgnorePatterns: ["[\\/]node_modules[\\/](?!(yjs|lib0)[\\/])"],
 	transform: {

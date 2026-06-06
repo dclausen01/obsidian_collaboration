@@ -18,6 +18,13 @@ import { FeatureFlagManager } from "./flagManager";
 import type { NamespacedSettings } from "./SettingsStorage";
 import { type EndpointManager } from "./EndpointManager";
 
+// Injected by esbuild (see esbuild.config.mjs). When LOCAL_AUTH is true we skip
+// PocketBase/OAuth entirely and run with a fixed stub identity so a note can go
+// live against our self-hosted server. Defaults keep upstream OAuth behaviour.
+declare const LOCAL_AUTH: boolean;
+declare const LOCAL_AUTH_EMAIL: string;
+declare const LOCAL_AUTH_NAME: string;
+
 interface GoogleUser {
 	email: string;
 	family_name: string;
@@ -195,24 +202,35 @@ export class LoginManager extends Observable<LoginManager> {
 			);
 			return { url, options };
 		};
-		this.refreshToken();
-		timeProvider.setInterval(() => this.refreshToken(), 86400000);
 		this.openSettings = openSettings;
-		if (!this.pb.authStore.isValid) {
-			this.logout();
-		}
-		if (this.pb.authStore.model?.id) {
-			this.pb
-				.collection("users")
-				.getOne(this.pb.authStore.model.id)
-				.then(() => {
-					this.getFlags();
-				})
-				.catch((response) => {
-					if (response.status === 404) {
-						this.logout();
-					}
-				});
+		if (LOCAL_AUTH) {
+			// Stub identity: no PocketBase/OAuth. `loggedIn` becomes true and
+			// `user.token` provides the bearer that LiveTokenStore sends to our
+			// own token issuer. PocketBase (`pb`) is still constructed above so
+			// downstream consumers keep a valid reference; it just isn't used.
+			this.user = this.makeLocalStubUser();
+			this.log(
+				`[LOCAL_AUTH] using stub identity ${LOCAL_AUTH_NAME} <${LOCAL_AUTH_EMAIL}>`,
+			);
+		} else {
+			this.refreshToken();
+			timeProvider.setInterval(() => this.refreshToken(), 86400000);
+			if (!this.pb.authStore.isValid) {
+				this.logout();
+			}
+			if (this.pb.authStore.model?.id) {
+				this.pb
+					.collection("users")
+					.getOne(this.pb.authStore.model.id)
+					.then(() => {
+						this.getFlags();
+					})
+					.catch((response) => {
+						if (response.status === 404) {
+							this.logout();
+						}
+					});
+			}
 		}
 		RelayInstances.set(this, "loginManager");
 	}
@@ -252,6 +270,13 @@ export class LoginManager extends Observable<LoginManager> {
 		authData?: RecordAuthResponse<RecordModel> | undefined,
 		provider?: string,
 	): boolean {
+		if (LOCAL_AUTH) {
+			if (!this.user) {
+				this.user = this.makeLocalStubUser();
+			}
+			this.notifyListeners();
+			return true;
+		}
 		if (!this.pb.authStore.isValid) {
 			this.notifyListeners(); // notify anyway
 			return false;
@@ -397,7 +422,28 @@ export class LoginManager extends Observable<LoginManager> {
 		);
 	}
 
+	/**
+	 * Build the fixed identity used in LOCAL_AUTH mode. The token is a dummy
+	 * bearer — our issuer ignores it for the MVP (TODO M2: real auth) — and the
+	 * id/email/name come from build-time config so multiple test vaults can run
+	 * as distinct collaborators.
+	 */
+	private makeLocalStubUser(): User {
+		return new User(
+			`local:${LOCAL_AUTH_EMAIL}`,
+			LOCAL_AUTH_NAME,
+			LOCAL_AUTH_EMAIL,
+			"",
+			`local-dev-token:${LOCAL_AUTH_EMAIL}`,
+		);
+	}
+
 	logout() {
+		if (LOCAL_AUTH) {
+			// No real session in local-auth mode; keep the stub identity so the
+			// pb.beforeSend invalid-auth path can't clear it.
+			return;
+		}
 		this.pb.cancelAllRequests();
 		this.pb.realtime.unsubscribe();
 		this.pb.authStore.clear();

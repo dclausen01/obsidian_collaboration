@@ -16,6 +16,11 @@ export interface IssuerConfig {
 	 * `--auth <private_key>`; the printed connection string goes here.
 	 */
 	ysweetConnectionString: string;
+	/**
+	 * How long minted client tokens are valid, in seconds. Surfaced to the
+	 * client as a ms-epoch `expiryTime` so it can refresh before expiry.
+	 */
+	tokenTtlSeconds: number;
 }
 
 export function loadConfig(): IssuerConfig {
@@ -25,5 +30,6 @@ export function loadConfig(): IssuerConfig {
 		// Default points at a local dev y-sweet with no auth.
 		ysweetConnectionString:
 			process.env.Y_SWEET_CONNECTION_STRING ?? "ys://127.0.0.1:8080",
+		tokenTtlSeconds: Number(process.env.TOKEN_TTL_SECONDS ?? 3600),
 	};
 }

@@ -2,7 +2,9 @@ import { loadConfig } from "./config.js";
 import { buildIssuer } from "./issuer.js";
 
 const config = loadConfig();
-const app = buildIssuer(config.ysweetConnectionString);
+const app = buildIssuer(config.ysweetConnectionString, {
+	tokenTtlSeconds: config.tokenTtlSeconds,
+});
 
 app
 	.listen({ host: config.host, port: config.port })

@@ -11,7 +11,8 @@ import { DocumentManager, type ClientToken } from "@y-sweet/sdk";
  *
  * Flow mirrors the Relay client (`src/LiveTokenStore.ts` -> `POST /token`):
  *   request:  { docId, relay?, folder?, device? }   + Authorization: Bearer <user>
- *   response: ClientToken { url, baseUrl, docId, token?, authorization? }
+ *   response: ClientToken { url, baseUrl, docId, token?, authorization?,
+ *                           folder, expiryTime }
  */
 export interface TokenRequestBody {
 	docId: string;
@@ -20,9 +21,18 @@ export interface TokenRequestBody {
 	device?: string;
 }
 
-export function buildIssuer(connectionString: string): FastifyInstance {
+export interface IssuerOptions {
+	/** Client-token lifetime in seconds. Defaults to one hour. */
+	tokenTtlSeconds?: number;
+}
+
+export function buildIssuer(
+	connectionString: string,
+	options: IssuerOptions = {},
+): FastifyInstance {
 	const app = Fastify({ logger: true });
 	const manager = new DocumentManager(connectionString);
+	const tokenTtlSeconds = options.tokenTtlSeconds ?? 3600;
 
 	app.get("/health", async () => {
 		// Surface whether the issuer can actually reach the y-sweet store.
@@ -34,7 +44,7 @@ export function buildIssuer(connectionString: string): FastifyInstance {
 	});
 
 	app.post<{ Body: TokenRequestBody }>("/token", async (request, reply) => {
-		const { docId } = request.body ?? ({} as TokenRequestBody);
+		const { docId, folder } = request.body ?? ({} as TokenRequestBody);
 		if (!docId || typeof docId !== "string") {
 			return reply.code(400).send({ error: "docId is required" });
 		}
@@ -46,9 +56,18 @@ export function buildIssuer(connectionString: string): FastifyInstance {
 		try {
 			const clientToken: ClientToken = await manager.getOrCreateDocAndToken(
 				docId,
-				{ authorization },
+				{ authorization, validForSeconds: tokenTtlSeconds },
 			);
-			return clientToken;
+			// The Relay client (src/TokenStore.ts) needs two fields the y-sweet
+			// ClientToken doesn't carry: `folder` (echoed back, used by the
+			// client's S3RN bookkeeping) and `expiryTime` as a ms-epoch so it can
+			// schedule a refresh before the token actually expires.
+			return {
+				...clientToken,
+				authorization,
+				folder: folder ?? "",
+				expiryTime: Date.now() + tokenTtlSeconds * 1000,
+			};
 		} catch (err) {
 			request.log.error({ err }, "failed to mint client token");
 			return reply

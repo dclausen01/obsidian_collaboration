@@ -37,11 +37,27 @@ const positionalArgs = process.argv.slice(3).filter((a) => !a.startsWith("--"));
 const out = positionalArgs[0] || ".";
 const tld = staging ? "dev" : "md";
 
-const apiUrl = `https://api.system3.${tld}`;
-const authUrl = `https://auth.system3.${tld}`;
+// Endpoints are overridable at build time so the fork can point at our own
+// self-hosted server instead of Relay's proprietary cloud. Defaults preserve
+// upstream behaviour when no override is set.
+const apiUrl =
+	process.env.OBSIDIAN_COLLAB_API_URL || `https://api.system3.${tld}`;
+const authUrl =
+	process.env.OBSIDIAN_COLLAB_AUTH_URL || `https://auth.system3.${tld}`;
 const healthUrl = `${apiUrl}/health?version=${gitTag}`;
+
+// Local-auth mode: skip PocketBase/OAuth and use a fixed stub identity so a
+// note can go live against our server without the proprietary login flow.
+// Off by default; enable with OBSIDIAN_COLLAB_LOCAL_AUTH=true.
+const localAuth = process.env.OBSIDIAN_COLLAB_LOCAL_AUTH === "true";
+const localAuthEmail =
+	process.env.OBSIDIAN_COLLAB_LOCAL_AUTH_EMAIL || "local@localhost";
+const localAuthName = process.env.OBSIDIAN_COLLAB_LOCAL_AUTH_NAME || "Local User";
 console.log("git tag:", gitTag);
 console.log("health URL", healthUrl);
+console.log("API_URL", apiUrl);
+console.log("AUTH_URL", authUrl);
+console.log("LOCAL_AUTH", localAuth, localAuth ? `(${localAuthName} <${localAuthEmail}>)` : "");
 
 // Fingerprint the working tree: HEAD commit + hash of uncommitted changes.
 // Recompute this to check if a build artifact is stale.
@@ -159,6 +175,9 @@ const context = await esbuild.context({
 		HEALTH_URL: `"${healthUrl}"`,
 		API_URL: `"${apiUrl}"`,
 		AUTH_URL: `"${authUrl}"`,
+		LOCAL_AUTH: `${localAuth}`,
+		LOCAL_AUTH_EMAIL: `"${localAuthEmail}"`,
+		LOCAL_AUTH_NAME: `"${localAuthName}"`,
 		REPOSITORY: `"No-Instructions/Relay"`,
 	},
 	treeShaking: true,

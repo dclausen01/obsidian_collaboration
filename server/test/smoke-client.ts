@@ -76,6 +76,30 @@ function waitForText(doc: Y.Doc, expected: string): Promise<void> {
 async function main(): Promise<void> {
 	console.log(`[smoke] issuer=${ISSUER_URL} docId=${DOC_ID}`);
 
+	// --- Contract check: the issuer must return the extra fields the Relay
+	// client (src/TokenStore.ts) relies on, not just the bare y-sweet token. ---
+	const sample = (await fetchToken()) as ClientToken & {
+		folder?: string;
+		expiryTime?: number;
+		authorization?: string;
+	};
+	if (!sample.url || !sample.docId) {
+		throw new Error("token missing url/docId");
+	}
+	if (typeof sample.folder !== "string") {
+		throw new Error("token missing `folder` field");
+	}
+	if (!sample.expiryTime || sample.expiryTime <= Date.now()) {
+		throw new Error(
+			`token expiryTime not in the future: ${sample.expiryTime}`,
+		);
+	}
+	console.log(
+		`[smoke] token contract OK (auth=${sample.authorization}, expires in ~${Math.round(
+			(sample.expiryTime - Date.now()) / 1000,
+		)}s)`,
+	);
+
 	// --- Phase 1: write ---
 	const writeDoc = new Y.Doc();
 	const writer = connect(writeDoc);
