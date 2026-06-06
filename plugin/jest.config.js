@@ -23,6 +23,7 @@ module.exports = {
         "LOCAL_AUTH": false,
         "LOCAL_AUTH_EMAIL": "local@localhost",
         "LOCAL_AUTH_NAME": "Local User",
+        "LOCAL_RELAY_ID": "00000000-0000-4000-8000-000000000001",
     },
 	transformIgnorePatterns: ["[\\/]node_modules[\\/](?!(yjs|lib0)[\\/])"],
 	transform: {

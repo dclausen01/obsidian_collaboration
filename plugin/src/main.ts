@@ -84,6 +84,8 @@ import { isDocument } from "./Document";
 import { EndpointManager, type EndpointSettings } from "./EndpointManager";
 import { generateHash } from "./hashing";
 import { SelfHostModal } from "./ui/SelfHostModal";
+import { FolderSuggestModal } from "./ui/FolderSuggestModal";
+import { GuidPromptModal } from "./ui/GuidPromptModal";
 import { DeviceManager } from "./DeviceManager";
 import type { RemoteSharedFolder } from "./Relay";
 import {
@@ -124,6 +126,7 @@ type VaultDeleteEvent = {
 declare const HEALTH_URL: string;
 declare const GIT_TAG: string;
 declare const REPOSITORY: string;
+declare const LOCAL_AUTH: boolean;
 
 export default class Live extends Plugin {
 	appId!: string;
@@ -707,6 +710,72 @@ export default class Live extends Plugin {
 				modal.open();
 			},
 		});
+
+		// Local-auth Option A: share/join folders against our self-hosted
+		// server without RelayManager/discovery. Only meaningful (and only
+		// registered) in local-auth builds.
+		if (LOCAL_AUTH) {
+			this.addCommand({
+				id: "collab-share-folder-local",
+				name: "Share folder live (local server)",
+				callback: () => {
+					const blocked = new Set(
+						this.sharedFolders.items().map((f) => f.path),
+					);
+					new FolderSuggestModal(
+						this.app,
+						"Choose folder to share...",
+						blocked,
+						this.sharedFolders,
+						(folderPath) => {
+							try {
+								const folder = this.sharedFolders.shareLocal(folderPath);
+								void navigator.clipboard?.writeText(folder.guid);
+								new Notice(
+									`Sharing "${folderPath}". Folder ID copied to clipboard:\n${folder.guid}`,
+									15000,
+								);
+							} catch (e) {
+								new Notice(`Share failed: ${(e as Error).message}`, 8000);
+							}
+						},
+					).open();
+				},
+			});
+			this.addCommand({
+				id: "collab-join-folder-local",
+				name: "Join shared folder (local server)",
+				callback: () => {
+					new FolderSuggestModal(
+						this.app,
+						"Choose folder to join...",
+						new Set(),
+						this.sharedFolders,
+						(folderPath) => {
+							new GuidPromptModal(
+								this.app,
+								"Join shared folder (local server)",
+								"00000000-0000-4000-8000-...",
+								(guid) => {
+									try {
+										this.sharedFolders.joinLocal(folderPath, guid);
+										new Notice(
+											`Joined shared folder at "${folderPath}".`,
+											8000,
+										);
+									} catch (e) {
+										new Notice(
+											`Join failed: ${(e as Error).message}`,
+											8000,
+										);
+									}
+								},
+							).open();
+						},
+					).open();
+				},
+			});
+		}
 
 		// Register handler for update availability changes
 		this.register(this.updateManager.subscribe(() => {

@@ -40,6 +40,15 @@ The plugin obtains y-sweet tokens from our control plane via `POST /token`
 (see `../server`). For M1, point `LoginManager`'s API URL at the local issuer
 and stub the user identity.
 
+## Running it locally (M1)
+
+A local-auth build talks to our own server instead of Relay's cloud: it injects
+a stub identity (no PocketBase/OAuth) and a fixed relay id so folders can be
+marked live via two commands — **"Share folder live (local server)"** and
+**"Join shared folder (local server)"**. Full recipe (server + two vaults) in
+[`../docs/local-dev.md`](../docs/local-dev.md). These dev-only commands and the
+stub login are tree-shaken out of a normal production build.
+
 ## Layout (imported from upstream)
 
 | Path                | Contents                                                       |

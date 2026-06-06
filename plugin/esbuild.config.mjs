@@ -53,11 +53,18 @@ const localAuth = process.env.OBSIDIAN_COLLAB_LOCAL_AUTH === "true";
 const localAuthEmail =
 	process.env.OBSIDIAN_COLLAB_LOCAL_AUTH_EMAIL || "local@localhost";
 const localAuthName = process.env.OBSIDIAN_COLLAB_LOCAL_AUTH_NAME || "Local User";
+// Fixed "relay" id used to mark folders as live in local-auth mode (no
+// RelayManager/discovery). Must be a valid UUID and identical across the vaults
+// that should collaborate. Overridable so separate test groups can diverge.
+const localRelayId =
+	process.env.OBSIDIAN_COLLAB_LOCAL_RELAY_ID ||
+	"00000000-0000-4000-8000-000000000001";
 console.log("git tag:", gitTag);
 console.log("health URL", healthUrl);
 console.log("API_URL", apiUrl);
 console.log("AUTH_URL", authUrl);
 console.log("LOCAL_AUTH", localAuth, localAuth ? `(${localAuthName} <${localAuthEmail}>)` : "");
+if (localAuth) console.log("LOCAL_RELAY_ID", localRelayId);
 
 // Fingerprint the working tree: HEAD commit + hash of uncommitted changes.
 // Recompute this to check if a build artifact is stale.
@@ -178,6 +185,7 @@ const context = await esbuild.context({
 		LOCAL_AUTH: `${localAuth}`,
 		LOCAL_AUTH_EMAIL: `"${localAuthEmail}"`,
 		LOCAL_AUTH_NAME: `"${localAuthName}"`,
+		LOCAL_RELAY_ID: `"${localRelayId}"`,
 		REPOSITORY: `"No-Instructions/Relay"`,
 	},
 	treeShaking: true,

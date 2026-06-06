@@ -79,6 +79,12 @@ import { expandDesiredRemotePaths } from "./syncPathUtils";
 import type { TimeProvider } from "./TimeProvider";
 import * as Y from "yjs";
 
+// Injected by esbuild. In local-auth mode there is no RelayManager discovery,
+// so folders are marked live with a fixed LOCAL_RELAY_ID instead (see Option A
+// in docs/coupling-analysis.md).
+declare const LOCAL_AUTH: boolean;
+declare const LOCAL_RELAY_ID: string;
+
 export interface SharedFolderSettings {
 	guid: string;
 	path: string;
@@ -2986,7 +2992,11 @@ export class SharedFolders extends ObservableSet<SharedFolder> {
 		super();
 		this.folderBuilder = folderBuilder;
 
-		if (!this._offRemoteUpdates) {
+		// In local-auth mode there is no RelayManager discovery feeding
+		// `remoteFolders`; subscribing would push `remote = undefined` onto every
+		// folder, which the setter turns into `relayId = undefined` — wiping the
+		// fixed LOCAL_RELAY_ID we use to mark folders live. So skip it entirely.
+		if (!LOCAL_AUTH && !this._offRemoteUpdates) {
 			this._offRemoteUpdates = this.relayManager.remoteFolders.subscribe(
 				(remotes) => {
 					let updated = false;
@@ -3146,5 +3156,26 @@ export class SharedFolders extends ObservableSet<SharedFolder> {
 		const folder = this._new(path, guid, relayId, false);
 		this.notifyListeners();
 		return folder;
+	}
+
+	/**
+	 * Local-auth Option A: mark a folder live against our self-hosted server
+	 * without RelayManager. Uses the fixed LOCAL_RELAY_ID so other vaults that
+	 * join with the same (guid, relay) connect to the same folder CRDT. This
+	 * vault is authoritative: its current files seed the shared content.
+	 */
+	shareLocal(path: string, guid: string = uuidv4()): SharedFolder {
+		const folder = this._new(path, guid, LOCAL_RELAY_ID, true);
+		this.notifyListeners();
+		return folder;
+	}
+
+	/**
+	 * Local-auth Option A counterpart to {@link shareLocal}: join a folder that
+	 * was shared from another vault, given its guid. Non-authoritative — content
+	 * is pulled from the shared CRDT.
+	 */
+	joinLocal(path: string, guid: string): SharedFolder {
+		return this.clone(path, guid, LOCAL_RELAY_ID);
 	}
 }

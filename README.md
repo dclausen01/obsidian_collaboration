@@ -11,8 +11,11 @@ proprietary cloud control plane with a fully open, self-hosted server.
 ## Status
 
 🚧 Early development. **Milestone M0 (scaffold + server smoke-test) is complete
-and verified.** M1 in progress: the Relay fork has been imported into `plugin/`
-(source builds & type-checks cleanly) and is being rewired to our own server.
+and verified.** M1 in progress: the Relay fork is imported into `plugin/` and
+rewired to our own server — a local-auth build can mint tokens from our issuer
+and mark folders live without Relay's cloud. See
+[`docs/local-dev.md`](docs/local-dev.md) for the end-to-end run recipe and
+[`docs/coupling-analysis.md`](docs/coupling-analysis.md) for the design.
 
 ## Architecture in one picture
 
