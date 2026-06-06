@@ -29,6 +29,24 @@ Obsidian client                Token issuer (this)            y-sweet
 > access to any requested `docId`. Real users, per-relay permissions and
 > discovery land in M2 (`TODO(M2)` in `src/issuer.ts`).
 
+## Run with Docker (recommended for deployment)
+
+`docker-compose.yml` runs both pieces together (issuer + y-sweet) with a
+persistent volume:
+
+```bash
+cd server
+cp .env.example .env
+./scripts/gen-auth.mjs >> .env      # fills Y_SWEET_AUTH + Y_SWEET_SERVER_TOKEN
+# set Y_SWEET_URL_PREFIX in .env to your public wss URL (or leave empty locally)
+docker compose up -d --build
+curl -s http://127.0.0.1:3000/health   # {"ok":true,"ysweet":{"ok":true}}
+```
+
+For the Plesk (Docker extension + Git) deployment walkthrough — subdomains, the
+reverse-proxy/WebSocket setup, and the `git pull` update loop — see
+[`../docs/deploy-plesk.md`](../docs/deploy-plesk.md).
+
 ## Scripts
 
 | Command            | What it does                                                       |

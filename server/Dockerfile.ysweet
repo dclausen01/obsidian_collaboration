@@ -1,0 +1,20 @@
+# y-sweet CRDT / WebSocket server. The npm wrapper downloads the Rust binary,
+# which we bake into the image at build time.
+#
+# IMPORTANT: use a glibc base (Debian "slim"), NOT alpine/musl — the prebuilt
+# y-sweet binary is linux-x64-gnu. Build this image ON the target server so the
+# downloaded binary matches the host CPU architecture.
+FROM node:22-slim
+WORKDIR /opt/ysweet
+RUN npm init -y >/dev/null 2>&1 \
+ && npm install y-sweet@0.8.2 \
+ && node -e "require('y-sweet/src/get-binary').getBinary().then(p=>console.log('baked y-sweet binary:',p))"
+
+# Persistence lives here; mount a named volume so docs survive restarts/updates.
+ENV Y_SWEET_STORE=/data
+VOLUME ["/data"]
+EXPOSE 8080
+
+# Auth (Y_SWEET_AUTH) and the public token URL (Y_SWEET_URL_PREFIX) are supplied
+# via environment variables (see .env / docker-compose.yml).
+CMD ["npx", "--no-install", "y-sweet", "serve", "--host", "0.0.0.0", "--port", "8080", "--prod"]

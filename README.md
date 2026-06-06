@@ -39,11 +39,25 @@ See the full design in the [plan](#) and `docs/architecture.md`.
 
 ## Quick start (server)
 
+Local, no Docker:
+
 ```bash
 cd server
 npm install
 ./scripts/e2e.sh   # spins up y-sweet + issuer and runs the end-to-end smoke test
 ```
+
+With Docker (issuer + y-sweet together; recommended for deployment):
+
+```bash
+cd server
+cp .env.example .env && ./scripts/gen-auth.mjs >> .env
+docker compose up -d --build
+```
+
+Deploying on a Plesk server (Docker + Git, reverse-proxy/WebSocket setup):
+see [`docs/deploy-plesk.md`](docs/deploy-plesk.md).
+Running the plugin against it: [`docs/local-dev.md`](docs/local-dev.md).
 
 ## Roadmap
 

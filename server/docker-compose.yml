@@ -1,0 +1,63 @@
+# Self-hosted backend: y-sweet (CRDT/WebSocket) + token issuer.
+#
+# Quick start:
+#   cd server
+#   cp .env.example .env
+#   ./scripts/gen-auth.mjs >> .env        # fills Y_SWEET_AUTH + Y_SWEET_SERVER_TOKEN
+#   # edit .env: set Y_SWEET_URL_PREFIX to your public wss URL
+#   docker compose up -d --build
+#
+# See docs/deploy-plesk.md for the Plesk (Docker extension + Git) walkthrough.
+name: obsidian-collab
+
+services:
+  y-sweet:
+    build:
+      context: .
+      dockerfile: Dockerfile.ysweet
+    restart: unless-stopped
+    environment:
+      # Private auth key — clients never see this; the issuer mints tokens from
+      # the matching server token (Y_SWEET_SERVER_TOKEN, used below).
+      Y_SWEET_AUTH: ${Y_SWEET_AUTH:?set Y_SWEET_AUTH in .env (run scripts/gen-auth.mjs)}
+      # Public URL embedded in client tokens. Behind the Plesk proxy this is the
+      # external wss endpoint, e.g. wss://collab.school.tld . Leave empty for
+      # purely local testing (tokens then point at the internal host).
+      Y_SWEET_URL_PREFIX: ${Y_SWEET_URL_PREFIX:-}
+      Y_SWEET_STORE: /data
+    volumes:
+      - ysweet-data:/data
+    # Bind to loopback on the host; the Plesk proxy (or the issuer) reaches it
+    # locally. Not exposed directly to the internet.
+    ports:
+      - "127.0.0.1:${YSWEET_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(8080,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  issuer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      y-sweet:
+        condition: service_healthy
+    environment:
+      # Reach y-sweet over the internal compose network using the server token.
+      Y_SWEET_CONNECTION_STRING: "ys://${Y_SWEET_SERVER_TOKEN}@y-sweet:8080"
+      ISSUER_HOST: 0.0.0.0
+      ISSUER_PORT: 3000
+      TOKEN_TTL_SECONDS: ${TOKEN_TTL_SECONDS:-3600}
+    ports:
+      - "127.0.0.1:${ISSUER_HOST_PORT:-3000}:3000"
+
+volumes:
+  ysweet-data:
