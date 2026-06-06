@@ -60,6 +60,25 @@ Install the built `main.js`, `manifest.json` and `styles.css` into each vault's
 > The local-auth commands and the stub login path are **tree-shaken out** of a
 > normal (non-local-auth) production build, so this stays dev-only.
 
+### Shortcut: build + install both vaults in one command
+
+`scripts/dev-install.mjs` does the per-vault build, copies the artifacts into the
+vault, and enables the plugin — for as many vaults as you list:
+
+```bash
+cd plugin
+npm install   # first time only
+npm run dev:install -- \
+  --server http://127.0.0.1:3000 \
+  --vault "/path/to/Vault A" --name Alice --email alice@localhost \
+  --vault "/path/to/Vault B" --name Bob   --email bob@localhost
+```
+
+Then reload Obsidian (or toggle the plugin) in each vault. Re-run the same
+command after code changes to rebuild and reinstall. Use `--no-enable` to skip
+touching `community-plugins.json`, or `--relay <uuid>` to use a non-default
+shared relay id.
+
 ## 3. Share a folder and collaborate
 
 1. In **vault A**, run the command **"Share folder live (local server)"** and

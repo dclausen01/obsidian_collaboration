@@ -11,7 +11,8 @@
 		"staging": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs staging --watch",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"test": "jest",
-		"lint": "npx eslint . --ext .ts"
+		"lint": "npx eslint . --ext .ts",
+		"dev:install": "node scripts/dev-install.mjs"
 	},
 	"keywords": [],
 	"author": "Daniel Grossmann-Kavanagh",
