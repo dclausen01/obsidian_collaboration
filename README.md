@@ -11,7 +11,8 @@ proprietary cloud control plane with a fully open, self-hosted server.
 ## Status
 
 🚧 Early development. **Milestone M0 (scaffold + server smoke-test) is complete
-and verified.** Next up: M1, Markdown live collaboration in Obsidian.
+and verified.** M1 in progress: the Relay fork has been imported into `plugin/`
+(source builds & type-checks cleanly) and is being rewired to our own server.
 
 ## Architecture in one picture
 
@@ -30,7 +31,7 @@ See the full design in the [plan](#) and `docs/architecture.md`.
 | Path      | Contents                                                              |
 | --------- | -------------------------------------------------------------------- |
 | `server/` | Self-hosted backend: y-sweet (CRDT/WS) + token-issuing control plane. |
-| `plugin/` | The Obsidian plugin (fork of Relay). Imported in M1.                  |
+| `plugin/` | The Obsidian plugin: full fork of Relay (imported in M1).             |
 | `docs/`   | Architecture and design notes.                                       |
 
 ## Quick start (server)

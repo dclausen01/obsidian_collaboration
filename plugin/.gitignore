@@ -1,0 +1,15 @@
+# dependencies
+node_modules
+
+# build output
+main.js
+*.map
+
+# obsidian runtime
+data.json
+
+# editor / OS
+.vscode
+.idea
+*.iml
+.DS_Store
